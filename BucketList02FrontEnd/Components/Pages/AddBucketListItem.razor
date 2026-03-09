@@ -1,0 +1,53 @@
+﻿@page "/bucketlistitem/add"
+@inject HttpClient Http
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject UserState User
+
+@if (User.IsLoggedIn)
+{
+    <p>Welkom, @User.UserName!</p>
+}
+
+<div style="max-width: 1000px; margin: 0 auto; padding: 40px 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 2px solid #e0e0e0;">
+        <h3 style="font-size: 32px; font-weight: bold; margin: 0;">Voeg een nieuw item toe 🪣</h3>
+    </div>
+
+    <div class="mb-3 mt-3">
+        <label for="onderwerp">Onderwerp: </label>
+        <input type="text" class="form-control" id="name" placeholder="onderwerp" name="onderwerp" @bind="nameBucketListItem" />
+    </div>
+
+    <div class="mb-3">
+        <label for="verduidelijking">Beschrijving: </label>
+        <input type="text" class="form-control" id="pwd" placeholder="Verduidelijking" name="verduidelijking" @bind="descriptionBucketListItem" />
+    </div>
+    <button type="submit" class="btn btn-primary" @onclick="addItemToDB">
+        Voeg Toe
+    </button>
+</div>
+
+@code {
+    private string nameBucketListItem, descriptionBucketListItem;
+
+    private async void addItemToDB()
+    {
+        var url = $"bucketlistitem?itemName={Uri.EscapeDataString(nameBucketListItem)}&itemDescription={Uri.EscapeDataString(descriptionBucketListItem)}";
+        var response = await Http.PostAsync(url, null);
+
+        if (response.IsSuccessStatusCode)
+        {
+            Navigation.NavigateTo("/bucketlistitem");
+        }
+        else if(response.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            await JS.InvokeVoidAsync("alert", "Dit item bestaat al!");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("alert", "Er trad een onbekende fout op!");
+        }
+    }
+}

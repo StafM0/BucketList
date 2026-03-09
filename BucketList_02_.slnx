@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="BucketList02FrontEnd/BucketList02FrontEnd.csproj" Id="7ca25bf1-46e5-4331-b51e-8ec1648a83f9" />
+  <Project Path="BucketList_02_API/BucketList_02_API.csproj" />
+</Solution>
