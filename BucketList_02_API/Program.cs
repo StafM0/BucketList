@@ -60,6 +60,20 @@ app.MapGet("/bucketlistitems", async (BucketListDbContext db) =>
     return Results.Ok(items);
 });
 
+//GET: Check password en username
+app.MapGet("/login", async (string username, string password, BucketListDbContext db) =>
+{
+    var user = await db.Users
+        .Where(u => u.NameUser == username && u.PassWordUser == password)
+        .Select(u => new { IdUser = u.IdUser, NameUser = u.NameUser })
+        .FirstOrDefaultAsync();
+
+    if (user == null)
+        return Results.Unauthorized();
+
+    return Results.Ok(user);
+});
+
 // POST: Voeg een item toe
 app.MapPost("/bucketlistitem", async (string itemName, string itemDescription, BucketListDbContext db) =>
 {
