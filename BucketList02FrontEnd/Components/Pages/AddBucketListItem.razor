@@ -3,12 +3,6 @@
 @rendermode InteractiveServer
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
-@inject UserState User
-
-@if (User.IsLoggedIn)
-{
-    <p>Welkom, @User.UserName!</p>
-}
 
 <div style="max-width: 1000px; margin: 0 auto; padding: 40px 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 2px solid #e0e0e0;">
