@@ -4,37 +4,93 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<div style="max-width: 1000px; margin: 0 auto; padding: 40px 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center;
-                margin-bottom: 30px; padding-bottom: 15px; border-bottom: 2px solid #e0e0e0;">
-        <h3 style="font-size: 32px; font-weight: bold; margin: 0;">Login</h3>
+<div style="max-width: 400px; margin: 60px auto; padding: 40px; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+
+    <!-- Tabs -->
+    <div style="display: flex; margin-bottom: 30px; border-bottom: 2px solid #e0e0e0;">
+        <button @onclick='() => activeTab = "login"'
+                style="flex: 1; padding: 12px; border: none; background: none; font-weight: 600; cursor: pointer; font-size: 16px;
+                       color: @(activeTab == "login" ? "#667eea" : "#999");
+                       border-bottom: @(activeTab == "login" ? "2px solid #667eea" : "none");
+                       margin-bottom: -2px;">
+            Inloggen
+        </button>
+        <button @onclick='() => activeTab = "register"'
+                style="flex: 1; padding: 12px; border: none; background: none; font-weight: 600; cursor: pointer; font-size: 16px;
+                       color: @(activeTab == "register" ? "#667eea" : "#999");
+                       border-bottom: @(activeTab == "register" ? "2px solid #667eea" : "none");
+                       margin-bottom: -2px;">
+            Registreren
+        </button>
     </div>
 
     @if (!string.IsNullOrEmpty(errorMessage))
     {
-        <div class="alert alert-danger">@errorMessage</div>
+        <div style="padding: 12px 16px; background: #fee; border: 1px solid #fcc; border-radius: 8px; color: #c00; margin-bottom: 20px;">
+            @errorMessage
+        </div>
     }
 
-    <div class="mb-3 mt-3">
-        <label for="userName">Gebruikersnaam:</label>
-        <input type="text" class="form-control" id="userName"
-               placeholder="Gebruikersnaam" @bind="userName" />
-    </div>
-    <div class="mb-3">
-        <label for="pass">Wachtwoord:</label>
-        <input type="password" class="form-control" id="pass"
-               placeholder="Wachtwoord" @bind="pass" />
-    </div>
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div style="padding: 12px 16px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; color: #155724; margin-bottom: 20px;">
+            @successMessage
+        </div>
+    }
 
-    <button class="btn btn-primary" @onclick="LoginUser" disabled="@isLoading">
-        @(isLoading ? "Bezig..." : "Login")
-    </button>
+    <!-- Login Tab -->
+    @if (activeTab == "login")
+    {
+        <div class="mb-3">
+            <label style="font-weight: 500; margin-bottom: 6px; display: block;">Gebruikersnaam</label>
+            <input type="text" class="form-control" placeholder="Gebruikersnaam" @bind="userName" />
+        </div>
+        <div class="mb-4">
+            <label style="font-weight: 500; margin-bottom: 6px; display: block;">Wachtwoord</label>
+            <input type="password" class="form-control" placeholder="Wachtwoord" @bind="pass" />
+        </div>
+        <button @onclick="LoginUser" disabled="@isLoading"
+                style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer;">
+            @(isLoading ? "Bezig..." : "Inloggen")
+        </button>
+    }
+
+    <!-- Register Tab -->
+    @if (activeTab == "register")
+    {
+        <div class="mb-3">
+            <label style="font-weight: 500; margin-bottom: 6px; display: block;">Gebruikersnaam</label>
+            <input type="text" class="form-control" placeholder="Gebruikersnaam" @bind="regUserName" />
+        </div>
+        <div class="mb-3">
+            <label style="font-weight: 500; margin-bottom: 6px; display: block;">Wachtwoord</label>
+            <input type="password" class="form-control" placeholder="Wachtwoord" @bind="regPass" />
+        </div>
+        <div class="mb-4">
+            <label style="font-weight: 500; margin-bottom: 6px; display: block;">Bevestig wachtwoord</label>
+            <input type="password" class="form-control" placeholder="Herhaal wachtwoord" @bind="regPassConfirm" />
+        </div>
+        <button @onclick="RegisterUser" disabled="@isLoading"
+                style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer;">
+            @(isLoading ? "Bezig..." : "Registreren")
+        </button>
+    }
 </div>
 
 @code {
+    private string activeTab = "login";
+
+    // Login fields
     private string userName = "";
     private string pass = "";
+
+    // Register fields
+    private string regUserName = "";
+    private string regPass = "";
+    private string regPassConfirm = "";
+
     private string errorMessage = "";
+    private string successMessage = "";
     private bool isLoading = false;
 
     private async Task LoginUser()
@@ -50,10 +106,9 @@
             if (response.IsSuccessStatusCode)
             {
                 var user = await response.Content.ReadFromJsonAsync<UserDto>();
-                // Store userId in sessionStorage so other pages can use it
                 await JS.InvokeVoidAsync("sessionStorage.setItem", "userId", user!.IdUser.ToString());
                 await JS.InvokeVoidAsync("sessionStorage.setItem", "userName", user.NameUser);
-                Navigation.NavigateTo("/mijnlijst");
+                Navigation.NavigateTo("/bucketlistitem");
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
@@ -61,10 +116,61 @@
             }
             else
             {
-                errorMessage = "Onbekende fout bij login.";
+                errorMessage = "Onbekende fout bij het inloggen.";
             }
         }
-        catch (Exception)
+        catch
+        {
+            errorMessage = "Kan geen verbinding maken met de server.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RegisterUser()
+    {
+        errorMessage = "";
+        successMessage = "";
+
+        if (string.IsNullOrWhiteSpace(regUserName) || string.IsNullOrWhiteSpace(regPass))
+        {
+            errorMessage = "Vul alle velden in.";
+            return;
+        }
+
+        if (regPass != regPassConfirm)
+        {
+            errorMessage = "Wachtwoorden komen niet overeen.";
+            return;
+        }
+
+        isLoading = true;
+
+        try
+        {
+            var url = $"/AddUser?userName={Uri.EscapeDataString(regUserName)}&password={Uri.EscapeDataString(regPass)}";
+            var response = await Http.PostAsync(url, null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = "Account aangemaakt! Je kan nu inloggen.";
+                regUserName = "";
+                regPass = "";
+                regPassConfirm = "";
+                activeTab = "login";
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                errorMessage = "Deze gebruikersnaam is al in gebruik.";
+            }
+            else
+            {
+                errorMessage = "Onbekende fout bij het registreren.";
+            }
+        }
+        catch
         {
             errorMessage = "Kan geen verbinding maken met de server.";
         }

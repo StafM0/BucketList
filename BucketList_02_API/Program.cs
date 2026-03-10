@@ -60,7 +60,7 @@ app.MapGet("/bucketlistitems", async (BucketListDbContext db) =>
     return Results.Ok(items);
 });
 
-//GET: Check password en username
+// GET: Check password en username
 app.MapGet("/login", async (string username, string password, BucketListDbContext db) =>
 {
     var user = await db.Users
@@ -74,13 +74,33 @@ app.MapGet("/login", async (string username, string password, BucketListDbContex
     return Results.Ok(user);
 });
 
+// POST: Voeg een nieuwe user toe
+app.MapPost("/AddUser", async (string userName, string password, BucketListDbContext db) =>
+{
+    var exists = await db.Users.AnyAsync(pbl => pbl.NameUser == userName);
+
+    if (exists)
+        return Results.Conflict("User already in Database");
+
+    var user = new User
+    {
+        NameUser = userName,
+        PassWordUser = password
+    };
+
+    db.Users.Add(user);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"user", user);
+});
+
 // POST: Voeg een item toe
 app.MapPost("/bucketlistitem", async (string itemName, string itemDescription, BucketListDbContext db) =>
 {
     var exists = await db.Bucketlistitems.AnyAsync(pbl => pbl.NameBucketListItem == itemName);
 
     if (exists)
-        return Results.Conflict("Item already  in bucket list");
+        return Results.Conflict("Item already in bucket list");
 
     var bucketlistitem = new Bucketlistitem
     {
