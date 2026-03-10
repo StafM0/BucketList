@@ -32,7 +32,24 @@
             {
                 <div style="padding: 24px; background: white; border: 1px solid #e0e0e0; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                     <h4 style="font-size: 20px; font-weight: 600; color: #2c3e50; margin-bottom: 10px;">@item.name</h4>
-                    <p style="color: #666; line-height: 1.6;">@item.description</p>
+                    <p style="color: #666; line-height: 1.6; margin-bottom: 16px;">@item.description</p>
+
+                    @if (!string.IsNullOrEmpty(userName))
+                    {
+                        @if (feedbackMessages.ContainsKey(item.itemId))
+                        {
+                            <span style="font-size: 13px; color: @(feedbackMessages[item.itemId].success ? "#155724" : "#856404");">
+                                @feedbackMessages[item.itemId].message
+                            </span>
+                        }
+                        else
+                        {
+                            <button @onclick="() => AddToMyList(item.itemId)"
+                                    style="padding: 8px 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">
+                                + Voeg toe aan mijn lijst
+                            </button>
+                        }
+                    }
                 </div>
             }
         </div>
@@ -42,29 +59,48 @@
 @code {
     private List<BucketListItem>? items;
     private string userName = "";
+    private int userId;
+    private Dictionary<int, (string message, bool success)> feedbackMessages = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // Check if logged in, but don't redirect — just show the name if available
+            var userIdStr = await JS.InvokeAsync<string>("sessionStorage.getItem", "userId");
             var storedName = await JS.InvokeAsync<string>("sessionStorage.getItem", "userName");
-            if (!string.IsNullOrEmpty(storedName))
-                userName = storedName;
+
+            if (!string.IsNullOrEmpty(userIdStr))
+            {
+                userId = int.Parse(userIdStr);
+                userName = storedName ?? "";
+            }
 
             await LoadItems();
             StateHasChanged();
         }
     }
 
+    private async Task AddToMyList(int itemId)
+    {
+        var response = await Http.PostAsync($"users/{userId}/bucketlist/{itemId}", null);
+
+        if (response.IsSuccessStatusCode)
+            feedbackMessages[itemId] = ("✅ Toegevoegd aan jouw lijst!", true);
+        else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            feedbackMessages[itemId] = ("⚠️ Staat al in jouw lijst.", false);
+        else
+            feedbackMessages[itemId] = ("❌ Fout bij toevoegen.", false);
+
+        StateHasChanged();
+    }
+
     private async Task HandleAddClick()
     {
         var userIdStr = await JS.InvokeAsync<string>("sessionStorage.getItem", "userId");
-
         if (string.IsNullOrEmpty(userIdStr))
-            Navigation.NavigateTo("/login");  // Not logged in → go to login
+            Navigation.NavigateTo("/login");
         else
-            Navigation.NavigateTo("/bucketlistitem/add");  // Logged in → go to add page
+            Navigation.NavigateTo("/bucketlistitem/add");
     }
 
     private async Task Logout()
@@ -72,6 +108,7 @@
         await JS.InvokeVoidAsync("sessionStorage.removeItem", "userId");
         await JS.InvokeVoidAsync("sessionStorage.removeItem", "userName");
         userName = "";
+        userId = 0;
         StateHasChanged();
     }
 
